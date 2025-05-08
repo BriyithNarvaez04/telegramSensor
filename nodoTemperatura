@@ -30,9 +30,9 @@ uint8_t broadcastAddress[] = {0xB8, 0xD6, 0x1A, 0x42, 0x4E, 0x58};
 //Structure example to send data
 //Must match the receiver structure
 typedef struct struct_message {
-    int id;
-    float temp; // Only send temperature data
-    float hum;
+    int id;            // Identificador del ESP32
+    float temp;        // Temperatura
+    float hum;         // Humedad
     float light;
 } struct_message;
 
@@ -41,11 +41,11 @@ esp_now_peer_info_t peerInfo;
 //Create a struct_message called myData
 struct_message myData;
 
-unsigned long previousMillis = 0;   // Stores last time humidity was published
+unsigned long previousMillis = 0;   // Stores last time temperature was published
 const long interval = 10000;        // Interval at which to publish sensor readings
 
 // Insert your SSID
-constexpr char WIFI_SSID[] = "TP-LINK_DDAE";
+constexpr char WIFI_SSID[] = "TCP-LINK_DDAE";
 
 int32_t getWiFiChannel(const char *ssid) {
   if (int32_t n = WiFi.scanNetworks()) {
@@ -60,14 +60,18 @@ int32_t getWiFiChannel(const char *ssid) {
 
 float readDHTTemperature() {
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readTemperature();
-  if (isnan(h)) {
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // Read temperature as Fahrenheit (isFahrenheit = true)
+  //float t = dht.readTemperature(true);
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(t)) {    
     Serial.println("Failed to read from DHT sensor!");
     return 0;
   }
   else {
-    Serial.println(h);
-    return h;
+    Serial.println(t);
+    return t;
   }
 }
 
@@ -122,11 +126,10 @@ void loop() {
     previousMillis = currentMillis;
     //Set values to send
     myData.id = BOARD_ID;
-    myData.temp = readDHTTemperature();
+
+    myData.temp = readDHTTemperature(); // Only set the temperature value
     myData.hum = 0;  // Only set the humidity value
     myData.light = 0;
-
-    //myData.readingId = readingId++;
      
     //Send message via ESP-NOW
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
